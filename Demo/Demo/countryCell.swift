@@ -14,13 +14,14 @@ class countryCell: UITableViewCell {
     let detailLabel = UILabel()
     
     let countryImageView:UIImageView = {
-    let img = UIImageView()
-    img.contentMode = .scaleAspectFill
-    img.translatesAutoresizingMaskIntoConstraints = false
-    img.layer.cornerRadius = 18
-    img.clipsToBounds = true
-    return img
+        let img = UIImageView()
+        img.contentMode = .scaleAspectFill
+        img.translatesAutoresizingMaskIntoConstraints = false
+        img.layer.cornerRadius = 18
+        img.clipsToBounds = true
+        return img
     }()
+    
     
     // MARK: Initalizers
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -30,17 +31,17 @@ class countryCell: UITableViewCell {
         
         contentView.addSubview(countryImageView)
         countryImageView.leadingAnchor.constraint(equalTo:marginGuide.leadingAnchor, constant:10).isActive = true
-        countryImageView.topAnchor.constraint(equalTo: marginGuide.topAnchor, constant: 10).isActive = true
+        countryImageView.topAnchor.constraint(equalTo: marginGuide.topAnchor).isActive = true
         contentView.addSubview(titleLabel)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.leadingAnchor.constraint(equalTo: countryImageView.trailingAnchor, constant: 10).isActive = true
+        titleLabel.leadingAnchor.constraint(equalTo: marginGuide.leadingAnchor, constant: 60).isActive = true
         titleLabel.topAnchor.constraint(equalTo: marginGuide.topAnchor).isActive = true
         titleLabel.trailingAnchor.constraint(equalTo: marginGuide.trailingAnchor).isActive = true
         titleLabel.numberOfLines = 0
         titleLabel.font = UIFont(name: "AvenirNext-DemiBold", size: 16)
         contentView.addSubview(detailLabel)
         detailLabel.translatesAutoresizingMaskIntoConstraints = false
-        detailLabel.leadingAnchor.constraint(equalTo: countryImageView.trailingAnchor, constant: 10).isActive = true
+        detailLabel.leadingAnchor.constraint(equalTo: marginGuide.leadingAnchor, constant: 60).isActive = true
         detailLabel.bottomAnchor.constraint(equalTo: marginGuide.bottomAnchor).isActive = true
         detailLabel.trailingAnchor.constraint(equalTo: marginGuide.trailingAnchor).isActive = true
         detailLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor).isActive = true
@@ -53,89 +54,57 @@ class countryCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-  var country:Rows? {
-     didSet {
-         guard let countryItem = country else {return}
-        if let titleName = countryItem.title {
-            titleLabel.text = titleName
-        }
-         if let descriptionName = countryItem.description {
-             detailLabel.text = descriptionName
-         }
-         if let imageName = countryItem.imageHref {
-            guard let imageUrl:URL = URL(string: imageName) else {
-                return
-            }
-            countryImageView.loadImge(withUrl: imageUrl)
-         }
+    func setup(with title: String?, description: String?, imageName: String?) {
+        titleLabel.text = title
+        detailLabel.text = description
+        countryImageView.downloaded(from: imageName ?? "")
         detailLabel.frame.size = detailLabel.intrinsicContentSize
+        if description == nil {
+            detailLabel.heightAnchor.constraint(equalToConstant: 13).isActive = true
+        }
         countryImageView.widthAnchor.constraint(equalToConstant:detailLabel.frame.size.height + 20).isActive = true
         countryImageView.heightAnchor.constraint(equalToConstant:detailLabel.frame.size.height + 20).isActive = true
-     }
- }
+    }
     
     func cacheImageDownload(withData: Rows) {
-         if let imageName = withData.imageHref {
-            countryImageView.loadImageUsingCache(withUrl: imageName)
+        if let imageName = withData.imageHref {
+            countryImageView.downloaded(from: imageName)
         }
     }
     
-
+    
 }
 
 
 // MARK: - Image Download and load
-let imageCache = NSCache<NSString, UIImage>()
 extension UIImageView {
-    func loadImge(withUrl url: URL) {
-     var indicator = UIActivityIndicatorView()
-     indicator = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 40, height: 40))
-     indicator.style = UIActivityIndicatorView.Style.medium
-     indicator.center = self.center
-     indicator.startAnimating()
-        DispatchQueue.global().async { [weak self] in
-            if let imageData = try? Data(contentsOf: url) {
-                if let image = UIImage(data: imageData) {
-                    DispatchQueue.main.async {
-                     self?.image = image
-                     indicator.removeFromSuperview()
+    func downloaded(from url: URL, contentMode mode: UIView.ContentMode = .scaleAspectFit) {
+        var indicator = UIActivityIndicatorView()
+        indicator = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 36, height: 36))
+        indicator.style = UIActivityIndicatorView.Style.medium
+        addSubview(indicator)
+        indicator.startAnimating()
+        contentMode = mode
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard
+                let httpURLResponse = response as? HTTPURLResponse, httpURLResponse.statusCode == 200,
+                let mimeType = response?.mimeType, mimeType.hasPrefix("image"),
+                let data = data, error == nil,
+                let image = UIImage(data: data)
+                else {
+                    DispatchQueue.main.async() {
+                        indicator.removeFromSuperview()
                     }
-                }
+                    return
             }
-        }
+            DispatchQueue.main.async() { [weak self] in
+                self?.image = image
+                indicator.removeFromSuperview()
+            }
+        }.resume()
     }
-    
-    func loadImageUsingCache(withUrl urlString : String) {
-        let url = URL(string: urlString)
-        if url == nil {return}
-        self.image = nil
-
-        // check cached image
-        if let cachedImage = imageCache.object(forKey: urlString as NSString)  {
-            self.image = cachedImage
-            return
-        }
-
-        let activityIndicator: UIActivityIndicatorView = UIActivityIndicatorView.init(style: UIActivityIndicatorView.Style.medium)
-        addSubview(activityIndicator)
-        activityIndicator.startAnimating()
-        activityIndicator.center = self.center
-
-        // if not, download image from url
-        URLSession.shared.dataTask(with: url!, completionHandler: { (data, response, error) in
-            if error != nil {
-                print(error!)
-                return
-            }
-
-            DispatchQueue.main.async {
-                if let image = UIImage(data: data!) {
-                    imageCache.setObject(image, forKey: urlString as NSString)
-                    self.image = image
-                    activityIndicator.removeFromSuperview()
-                }
-            }
-
-        }).resume()
+    func downloaded(from link: String, contentMode mode: UIView.ContentMode = .scaleAspectFit) {
+        guard let url = URL(string: link) else { return }
+        downloaded(from: url, contentMode: mode)
     }
 }

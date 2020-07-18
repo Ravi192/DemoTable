@@ -12,11 +12,11 @@ import UIKit
 import WebKit
 
 class ViewController: UIViewController {
-let countryTableView = UITableView()
-private var serverClient: ServerClient?
-var countaryValue: [Rows] = []
-var indicator = UIActivityIndicatorView()
-var refreshControl = UIRefreshControl()
+    let countryTableView = UITableView()
+    private var serverClient: ServerClient?
+    var countaryValue: [Rows] = []
+    var indicator = UIActivityIndicatorView()
+    var refreshControl = UIRefreshControl()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,19 +28,21 @@ var refreshControl = UIRefreshControl()
         dataFetch()
     }
     
+    
+    
     // MARK: - setUPUIComponents
     private func setupComponents () {
-      view.backgroundColor = .white
-      view.addSubview(countryTableView)
-      countryTableView.dataSource = self
-      countryTableView.delegate = self
-      countryTableView.estimatedRowHeight = 100
-      countryTableView.rowHeight = UITableView.automaticDimension
-      countryTableView.tableFooterView = UIView(frame: CGRect.zero)
-      countryTableView.register(countryCell.self, forCellReuseIdentifier: "countryCell")
-      refreshControl.attributedTitle = NSAttributedString(string: "Pull to refresh")
-      refreshControl.addTarget(self, action: #selector(self.refresh(_:)), for: .valueChanged)
-      countryTableView.addSubview(refreshControl)
+        view.backgroundColor = .white
+        view.addSubview(countryTableView)
+        countryTableView.dataSource = self
+        countryTableView.delegate = self
+        countryTableView.estimatedRowHeight = 100
+        countryTableView.rowHeight = UITableView.automaticDimension
+        countryTableView.tableFooterView = UIView(frame: CGRect.zero)
+        countryTableView.register(countryCell.self, forCellReuseIdentifier: "countryCell")
+        refreshControl.attributedTitle = NSAttributedString(string: "Pull to refresh")
+        refreshControl.addTarget(self, action: #selector(self.refresh(_:)), for: .valueChanged)
+        countryTableView.addSubview(refreshControl)
     }
     
     // MARK: - setUPUIConstraints
@@ -56,39 +58,39 @@ var refreshControl = UIRefreshControl()
     @objc func refresh(_ sender: AnyObject) {
         self.countaryValue.removeAll()
         dataFetch()
-        self.countryTableView.isHidden = false
         self.countryTableView.reloadData()
         self.refreshControl.endRefreshing()
     }
     
-     // MARK: - Activity Indicator while loading data
+    // MARK: - Activity Indicator while loading data
     func activityIndicator() {
         indicator = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 40, height: 40))
-        indicator.style = UIActivityIndicatorView.Style.medium
+        indicator.style = UIActivityIndicatorView.Style.large
         indicator.center = self.view.center
         self.view.addSubview(indicator)
     }
     
-     // MARK: - API Call
+    // MARK: - API Call
     func dataFetch () {
         serverClient = ServerClient()
         serverClient?.getCountaryData(completionHandler: { (countaryData, http, error) in
             if http == 200 {
                 let data = countaryData
                 DispatchQueue.main.async {
-                self.navigationItem.title = data.title
+                    self.navigationItem.title = nil
+                    self.navigationItem.title = data.title
                 }
+                self.countaryValue.removeAll()
                 for countaryData in data.rows {
-                self.countaryValue.append(countaryData)
+                    self.countaryValue.append(countaryData)
                 }
                 self.countaryValue = self.countaryValue.filter { $0.title != nil || $0.description != nil || $0.imageHref != nil
                 }
-                print(self.countaryValue.count)
                 DispatchQueue.main.async {
-                self.countryTableView.isHidden = false
-                self.indicator.stopAnimating()
-                self.indicator.hidesWhenStopped = true
-                self.countryTableView.reloadData()
+                    self.countryTableView.isHidden = false
+                    self.indicator.stopAnimating()
+                    self.indicator.hidesWhenStopped = true
+                    self.countryTableView.reloadData()
                 }
             }
         })
@@ -104,8 +106,11 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "countryCell", for: indexPath) as! countryCell
-        cell.country = countaryValue[indexPath.row]
+        let cell = tableView.dequeueReusableCell(withIdentifier: "countryCell", for: indexPath) as! countryCell
+        let title = countaryValue[indexPath.row].title
+        let description = countaryValue[indexPath.row].description
+        let imagename = countaryValue[indexPath.row].imageHref
+        cell.setup(with: title, description: description, imageName: imagename)
         return cell
     }
     
