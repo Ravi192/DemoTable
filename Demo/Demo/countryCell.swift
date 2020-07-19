@@ -28,7 +28,6 @@ class countryCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
         let marginGuide = contentView.layoutMarginsGuide
-        
         contentView.addSubview(countryImageView)
         countryImageView.leadingAnchor.constraint(equalTo:marginGuide.leadingAnchor, constant:10).isActive = true
         countryImageView.topAnchor.constraint(equalTo: marginGuide.topAnchor).isActive = true
