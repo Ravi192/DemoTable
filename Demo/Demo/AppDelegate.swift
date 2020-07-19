@@ -3,7 +3,7 @@
 //  Demo
 //
 //  Created by RAVIKANT KUMAR on 18/07/20.
-//  Copyright © 2020 Societe Generale. All rights reserved.
+//  Copyright © 2020 Ravikant Kumar. All rights reserved.
 //
 
 import UIKit
